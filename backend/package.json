@@ -1,0 +1,17 @@
+{
+  "name": "izumi-fc-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "migrate": "node scripts/migrate.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.11.0"
+  }
+} 

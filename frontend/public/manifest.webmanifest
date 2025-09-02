@@ -1,0 +1,10 @@
+{
+  "name": "イズミフィットネスセンター",
+  "short_name": "イズミFC",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "lang": "ja-JP",
+  "icons": []
+} 
