@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import mysql from 'mysql2/promise';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 dotenv.config();
 
@@ -19,28 +20,27 @@ app.use(cors({
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
-const pool = mysql.createPool({
+const pool = new Pool({
 	host: process.env.DB_HOST,
-	port: Number(process.env.DB_PORT || 3306),
+	port: Number(process.env.DB_PORT || 5432),
 	user: process.env.DB_USER,
 	password: process.env.DB_PASSWORD,
 	database: process.env.DB_NAME,
-	waitForConnections: true,
-	connectionLimit: Number(process.env.DB_POOL_LIMIT || 10),
-	queueLimit: 0,
-	ssl: { rejectUnauthorized: true }
+	max: Number(process.env.DB_POOL_LIMIT || 10),
+	ssl: { rejectUnauthorized: false }
 });
 
 app.get('/trainer-assets', async (req, res) => {
 	try {
-		const [rows] = await pool.query(
+		const result = await pool.query(
 			`SELECT trainer_name, photo_url, audio_url, audio_type, count_number
 			 FROM trainer_assets
-			 WHERE trainer_name = ?
+			 WHERE trainer_name = $1
 			 ORDER BY audio_type, count_number`,
 			['Izumi']
 		);
 
+		const rows = result.rows;
 		if (!rows || rows.length === 0) return res.status(404).json({ message: 'not found' });
 
 		const trainerName = rows[0].trainer_name;
@@ -63,4 +63,4 @@ app.get('/trainer-assets', async (req, res) => {
 
 app.listen(PORT, () => {
 	console.log(`API listening on :${PORT}`);
-}); 
+});
