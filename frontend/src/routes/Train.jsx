@@ -6,6 +6,9 @@ import { useCountdown } from '../hooks/useCountdown.js';
 import { useWakeLock } from '../hooks/useWakeLock.js';
 import { useBackgroundHandling } from '../hooks/useBackgroundHandling.js';
 
+// グローバルフラグ（React StrictMode対応）
+let globalCameraInitialized = false;
+
 export default function Train() {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -35,22 +38,34 @@ export default function Train() {
 	const { isVisible, onPause, onResume } = useBackgroundHandling();
 	
 	// 顔検出フック
-	const { currentCount, isDetecting, detectionState, resetCount } = useFaceDetection(
+	const { currentCount, isDetecting, detectionState, faceDetectionDebugInfo, resetCount } = useFaceDetection(
 		videoRef, 
 		canvasRef, 
 		isDetectionActive && isVisible // 可視状態でのみ検出
 	);
+	
 
 	useEffect(() => {
-		startCamera();
+		const initializeCamera = async () => {
+					if (globalCameraInitialized) {
+			return;
+		}
+			globalCameraInitialized = true;
+			await startCamera();
+		};
+		
+		initializeCamera();
+		
 		return () => {
+			// クリーンアップ時はグローバルフラグをリセットしない
+			// （React StrictModeでの重複実行を防ぐため）
 			if (stream) {
 				stream.getTracks().forEach(track => track.stop());
 			}
 			stopAudio();
 			releaseWakeLock();
 		};
-	}, []);
+	}, []); // 依存配列は空のまま（一度だけ実行）
 
 	// バックグラウンド時の処理
 	useEffect(() => {
@@ -101,8 +116,12 @@ export default function Train() {
 		}
 	}, [currentCount, goal, hasStarted]);
 
-	async function startCamera() {
+	async function startCamera(retryCount = 0) {
+		const maxRetries = 3;
+		const timeoutMs = 10000; // 10秒タイムアウト
+		
 		try {
+			
 			const mediaStream = await navigator.mediaDevices.getUserMedia({
 				video: {
 					facingMode: 'user',
@@ -116,58 +135,113 @@ export default function Train() {
 			
 			if (videoRef.current) {
 				videoRef.current.srcObject = mediaStream;
-				videoRef.current.onloadedmetadata = () => {
-					setIsCameraReady(true);
+				
+				// 複数の判定条件でカメラ準備完了を確認
+				const checkCameraReady = () => {
+					const video = videoRef.current;
+					if (!video) return false;
+					
+					const hasMetadata = video.videoWidth > 0 && video.videoHeight > 0;
+					const hasEnoughData = video.readyState >= video.HAVE_ENOUGH_DATA;
+					
+					
+					return hasMetadata && hasEnoughData;
 				};
+				
+				// タイムアウト付きでカメラ準備完了を待機
+				const timeoutId = setTimeout(() => {
+					if (retryCount < maxRetries) {
+						setTimeout(() => startCamera(retryCount + 1), 1000);
+					} else {
+						setError('カメラを起動できませんでした。ホームに戻ります。');
+						setTimeout(() => navigate('/'), 2000);
+					}
+				}, timeoutMs);
+				
+				// 定期的にカメラ準備完了をチェック
+				const checkInterval = setInterval(() => {
+					if (checkCameraReady()) {
+						clearTimeout(timeoutId);
+						clearInterval(checkInterval);
+						
+						setIsCameraReady(true);
+					}
+				}, 100);
+				
+				
 			}
 		} catch (err) {
-			console.error('Camera error:', err);
-			setError('カメラを起動できませんでした。ホームに戻ります。');
-			setTimeout(() => navigate('/'), 2000);
+			if (retryCount < maxRetries) {
+				setTimeout(() => startCamera(retryCount + 1), 1000);
+			} else {
+				setError('カメラを起動できませんでした。ホームに戻ります。');
+				setTimeout(() => navigate('/'), 2000);
+			}
 		}
 	}
 
 	async function handleStart() {
-		if (audioAssets && !audioLoading) {
+		
+		try {
 			// Wake Lock を要求
 			if (wakeLockSupported) {
 				await requestWakeLock();
 			}
 			
-			// 開始音声再生
-			playAudio('start');
-			
-			// 開始音声終了後、カウントダウン開始
-			setTimeout(() => {
+			// 音声が利用可能な場合は再生
+			if (audioAssets && !audioLoading) {
+				playAudio('start');
+				
+				// 開始音声終了後、カウントダウン開始
+				setTimeout(() => {
+					startCountdown();
+				}, 2000); // 開始音声の長さを想定
+			} else {
+				// 音声なしでカウントダウン開始
 				startCountdown();
-			}, 2000); // 開始音声の長さを想定
+			}
+		} catch (error) {
+			// エラーが発生してもカウントダウンは開始
+			startCountdown();
 		}
 	}
 
 	function handleComplete() {
 		setIsDetectionActive(false);
 		releaseWakeLock();
-		playAudio('complete');
 		
-		// 完了音声終了後、ホームに戻る
-		setTimeout(() => {
+		// 音声が利用可能な場合は再生
+		if (audioAssets && !audioLoading) {
+			playAudio('complete');
+			// 完了音声終了後、ホームに戻る
+			setTimeout(() => {
+				navigate('/');
+			}, 3000); // 完了音声の長さを想定
+		} else {
+			// 音声なしで即座にホームに戻る
 			navigate('/');
-		}, 3000); // 完了音声の長さを想定
+		}
 	}
 
 	function handleRetire() {
 		setIsDetectionActive(false);
 		releaseWakeLock();
-		playAudio('retire');
 		
 		if (stream) {
 			stream.getTracks().forEach(track => track.stop());
 		}
 		
-		// リタイア音声終了後、ホームに戻る
-		setTimeout(() => {
+		// 音声が利用可能な場合は再生
+		if (audioAssets && !audioLoading) {
+			playAudio('retire');
+			// リタイア音声終了後、ホームに戻る
+			setTimeout(() => {
+				navigate('/');
+			}, 2000); // リタイア音声の長さを想定
+		} else {
+			// 音声なしで即座にホームに戻る
 			navigate('/');
-		}, 2000); // リタイア音声の長さを想定
+		}
 	}
 
 	// ローディング状態
@@ -226,6 +300,45 @@ export default function Train() {
 								<button className="start-training-button" onClick={handleStart}>
 									トレーニング開始
 								</button>
+								{!audioAssets && !audioLoading && (
+									<div className="audio-warning" style={{
+										background: 'rgba(255, 193, 7, 0.1)',
+										border: '1px solid #ffc107',
+										borderRadius: '8px',
+										padding: '12px',
+										margin: '16px 0',
+										color: '#856404',
+										fontSize: '14px'
+									}}>
+										⚠️ 音声ファイルの読み込みに失敗しました。音声なしでトレーニングを開始します。
+									</div>
+								)}
+								{faceDetectionDebugInfo.status === 'ready' && (
+									<div className="detection-success" style={{
+										background: 'rgba(40, 167, 69, 0.1)',
+										border: '1px solid #28a745',
+										borderRadius: '8px',
+										padding: '12px',
+										margin: '16px 0',
+										color: '#155724',
+										fontSize: '14px'
+									}}>
+										✅ TensorFlow.js顔検出機能が正常に動作しています。
+									</div>
+								)}
+								{faceDetectionDebugInfo.status === 'fallback_ready' && (
+									<div className="detection-warning" style={{
+										background: 'rgba(108, 117, 125, 0.1)',
+										border: '1px solid #6c757d',
+										borderRadius: '8px',
+										padding: '12px',
+										margin: '16px 0',
+										color: '#495057',
+										fontSize: '14px'
+									}}>
+										⚠️ 顔検出機能が利用できません。手動でカウントしてください。
+									</div>
+								)}
 								{wakeLockSupported && (
 									<div className="wake-lock-info">
 										画面スリープ防止機能が利用可能です
@@ -258,8 +371,6 @@ export default function Train() {
 			<div className="hud">
 				<div className="count">
 					現在：{currentCount}回 / 目標：{goal}回
-					{detectionState === 'detecting' && <span className="status"> (検出中)</span>}
-					{detectionState === 'confirmed' && <span className="status"> (カウント確定!)</span>}
 				</div>
 				<button className="retire-button" onClick={handleRetire}>リタイア</button>
 			</div>
