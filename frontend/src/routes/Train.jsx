@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useFaceDetection } from '../hooks/useFaceDetection.js';
+import { useFaceDetection, resetFaceDetectionGlobalFlag } from '../hooks/useFaceDetection.js';
 import { useAudioManager } from '../hooks/useAudioManager.js';
 import { useCountdown } from '../hooks/useCountdown.js';
 import { useWakeLock } from '../hooks/useWakeLock.js';
@@ -206,9 +206,30 @@ export default function Train() {
 		}
 	}
 
-	function handleComplete() {
+	// トレーニング終了時の共通クリーンアップ処理
+	function cleanupTraining() {
+		// 検出を停止
 		setIsDetectionActive(false);
+		// Wake Lockを解放
 		releaseWakeLock();
+		// カメラストリームを停止
+		if (stream) {
+			stream.getTracks().forEach(track => track.stop());
+		}
+		// 状態をリセット
+		setIsCameraReady(false);
+		setHasStarted(false);
+		setError(null);
+		// カウントをリセット
+		resetCount();
+		// グローバルフラグをリセット（次回のトレーニングでカメラを再初期化できるように）
+		globalCameraInitialized = false;
+		// 顔検出のグローバルフラグもリセット（次回のトレーニングで顔検出を再初期化できるように）
+		resetFaceDetectionGlobalFlag();
+	}
+
+	function handleComplete() {
+		cleanupTraining();
 		
 		// 音声が利用可能な場合は再生
 		if (audioAssets && !audioLoading) {
@@ -224,12 +245,7 @@ export default function Train() {
 	}
 
 	function handleRetire() {
-		setIsDetectionActive(false);
-		releaseWakeLock();
-		
-		if (stream) {
-			stream.getTracks().forEach(track => track.stop());
-		}
+		cleanupTraining();
 		
 		// 音声が利用可能な場合は再生
 		if (audioAssets && !audioLoading) {
