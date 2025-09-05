@@ -5,6 +5,12 @@ import '@tensorflow/tfjs-backend-webgl';
 // グローバルフラグ（React StrictMode対応）
 let globalFaceDetectionInitialized = false;
 
+// グローバルフラグをリセットする関数を追加
+export function resetFaceDetectionGlobalFlag() {
+	globalFaceDetectionInitialized = false;
+	console.log('顔検出グローバルフラグをリセットしました');
+}
+
 // TensorFlow.js Face Detection の設定
 const DETECTION_CONFIG = {
 	// 合意パラメータ

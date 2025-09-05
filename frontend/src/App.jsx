@@ -7,9 +7,6 @@ export default function App() {
 		<div className="app-root">
 			<header className="app-header">
 				<h1>イズミフィットネスセンター</h1>
-				<nav>
-					{location.pathname !== '/' && <Link to="/">ホーム</Link>}
-				</nav>
 			</header>
 			<main>
 				<Outlet />
