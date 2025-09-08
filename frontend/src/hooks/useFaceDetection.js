@@ -8,11 +8,11 @@ let globalFaceDetectionInitialized = false;
 // TensorFlow.js Face Detection の設定
 const DETECTION_CONFIG = {
 	// 合意パラメータ
-	confidence: 0.6,           // 確信度閾値
-	sizeThresholdOn: 0.15,     // 顔サイズ閾値（短辺比）ON
-	sizeThresholdOff: 0.05,    // 顔サイズ閾値（短辺比）OFF
-	appearDuration: 500,       // 出現継続時間（ms）（0.5秒）
-	smoothingFrames: 5         // スムージングフレーム数
+	confidence: 0.5,           // 確信度閾値（緩和）
+	sizeThresholdOn: 0.12,     // 顔サイズ閾値（短辺比）ON（緩和）
+	sizeThresholdOff: 0.03,    // 顔サイズ閾値（短辺比）OFF（緩和）
+	appearDuration: 300,       // 出現継続時間（ms）（短縮）
+	smoothingFrames: 3         // スムージングフレーム数（短縮）
 };
 
 export function useFaceDetection(videoRef, canvasRef, isActive) {
@@ -331,18 +331,35 @@ export function useFaceDetection(videoRef, canvasRef, isActive) {
 				
 			} else if (smoothedSize < DETECTION_CONFIG.sizeThresholdOff) {
 				// 顔が隠れた場合はidle状態に戻る（全状態から）
+				// ただし、counted状態の場合は少し遅延を入れる
 				if (detectionState.phase !== 'idle') {
-					setDetectionState(prev => ({
-						...prev,
-						phase: 'idle',
-						startTime: 0
-					}));
-					console.log('👤 状態遷移: 任意の状態 → idle（顔が隠れた）', {
-						previousPhase: detectionState.phase,
-						smoothedSize,
-						threshold: DETECTION_CONFIG.sizeThresholdOff,
-						timestamp: now
-					});
+					if (detectionState.phase === 'counted') {
+						// counted状態の場合は少し待機してからidleに戻る
+						setTimeout(() => {
+							setDetectionState(prev => ({
+								...prev,
+								phase: 'idle',
+								startTime: 0
+							}));
+							console.log('👤 状態遷移: counted → idle（遅延後）', {
+								smoothedSize,
+								threshold: DETECTION_CONFIG.sizeThresholdOff,
+								timestamp: Date.now()
+							});
+						}, 200); // 200ms遅延
+					} else {
+						setDetectionState(prev => ({
+							...prev,
+							phase: 'idle',
+							startTime: 0
+						}));
+						console.log('👤 状態遷移: 任意の状態 → idle（顔が隠れた）', {
+							previousPhase: detectionState.phase,
+							smoothedSize,
+							threshold: DETECTION_CONFIG.sizeThresholdOff,
+							timestamp: now
+						});
+					}
 				}
 			} else {
 				// 閾値の範囲内でも描画は行う
@@ -423,15 +440,8 @@ export function useFaceDetection(videoRef, canvasRef, isActive) {
 		
 		// 検出頻度を状態に応じて制御
 		const getDetectionInterval = () => {
-			switch (detectionState.phase) {
-				case 'idle':
-				case 'detecting':
-					return 1000 / 20; // 20FPS (50ms)
-				case 'counted':
-					return 1000 / 10; // 10FPS (100ms)
-				default:
-					return 1000 / 20; // デフォルト20FPS
-			}
+			// すべての状態で同じ頻度を使用（20FPS）
+			return 1000 / 20; // 20FPS (50ms)
 		};
 		
 		const startDetection = () => {

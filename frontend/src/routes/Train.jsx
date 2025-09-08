@@ -5,6 +5,7 @@ import { useAudioManager } from '../hooks/useAudioManager.js';
 import { useCountdown } from '../hooks/useCountdown.js';
 import { useWakeLock } from '../hooks/useWakeLock.js';
 import { useBackgroundHandling } from '../hooks/useBackgroundHandling.js';
+import { useTrainerAssets } from '../hooks/useTrainerAssets.js';
 
 // グローバルフラグ（React StrictMode対応）
 let globalCameraInitialized = false;
@@ -22,9 +23,17 @@ export default function Train() {
 	const [isDetectionActive, setIsDetectionActive] = useState(false);
 	const [hasStarted, setHasStarted] = useState(false);
 	
+	
 	// 音声管理
 	const { audioAssets, isLoading: audioLoading, playAudio, stopAudio, loadCountAudio } = useAudioManager();
-	
+	const lastPlayedCountRef = useRef(0); // 前回再生したカウント
+
+	// トレーナーデータ管理
+	const { trainerData, isLoading: trainerLoading, error: trainerError } = useTrainerAssets();
+
+	// 画像管理
+	const [currentImage, setCurrentImage] = useState(null);
+
 	// カウントダウン
 	const { countdown, isActive: countdownActive, startCountdown } = useCountdown(() => {
 		setIsDetectionActive(true);
@@ -89,11 +98,27 @@ export default function Train() {
 		};
 	}, [hasStarted, countdownActive, onPause, onResume, stopAudio]);
 
-	// カウント時の音声再生
+	// カウント時の音声再生と画像表示
 	useEffect(() => {
 		if (currentCount > 0 && hasStarted && isVisible) {
-			// カウント音声再生
+			// 同じカウントでの重複再生を防止
+			if (lastPlayedCountRef.current === currentCount) return;
+
+			lastPlayedCountRef.current = currentCount;
+
+			// カウント音声再生（useAudioManagerを使用）
+			console.log(`🎯 カウント音声再生要求: ${currentCount}`);
 			playAudio('count', currentCount);
+
+			// データベースからカウント画像を取得
+			if (trainerData?.countImages && trainerData.countImages[currentCount]) {
+				console.log(`🎯 カウント${currentCount}画像URL:`, trainerData.countImages[currentCount]);
+				setCurrentImage(trainerData.countImages[currentCount]);
+			} else {
+				// フォールバック: ローカル画像を使用
+				console.log(`🎯 カウント${currentCount}画像フォールバック: /count_photo/count_${padded}.jpg`);
+				setCurrentImage(`/count_photo/count_${padded}.jpg`);
+			}
 			
 			// 遅延読み込み（カウント6-30）
 			if (currentCount >= 6 && currentCount <= 30) {
@@ -107,7 +132,7 @@ export default function Train() {
 				playAudio('last5');
 			}
 		}
-	}, [currentCount, hasStarted, goal, isVisible, playAudio, loadCountAudio]);
+	}, [currentCount, hasStarted, goal, isVisible, playAudio, loadCountAudio, trainerData]);
 
 	// 目標達成チェック
 	useEffect(() => {
@@ -188,6 +213,15 @@ export default function Train() {
 				await requestWakeLock();
 			}
 			
+			// スタート画像を表示
+			if (trainerData?.countImages && trainerData.countImages['start']) {
+				console.log('🎯 スタート画像URL:', trainerData.countImages['start']);
+				setCurrentImage(trainerData.countImages['start']);
+			} else {
+				console.log('🎯 スタート画像フォールバック: /start.jpg');
+				setCurrentImage('/start.jpg');
+			}
+			
 			// 音声が利用可能な場合は再生
 			if (audioAssets && !audioLoading) {
 				playAudio('start');
@@ -210,17 +244,29 @@ export default function Train() {
 		setIsDetectionActive(false);
 		releaseWakeLock();
 		
-		// 音声が利用可能な場合は再生
-		if (audioAssets && !audioLoading) {
-			playAudio('complete');
-			// 完了音声終了後、ホームに戻る
-			setTimeout(() => {
-				navigate('/');
-			}, 3000); // 完了音声の長さを想定
+		// 完了画像を表示
+		if (trainerData?.countImages && trainerData.countImages['finish']) {
+			console.log('🎯 完了画像URL:', trainerData.countImages['finish']);
+			setCurrentImage(trainerData.countImages['finish']);
 		} else {
-			// 音声なしで即座にホームに戻る
-			navigate('/');
+			console.log('🎯 完了画像フォールバック: /finish.jpg');
+			setCurrentImage('/finish.jpg');
 		}
+		
+		// 少し待ってからfinish音声を再生
+		setTimeout(() => {
+			// 音声が利用可能な場合は再生
+			if (audioAssets && !audioLoading) {
+				playAudio('finish');
+				// 完了音声終了後、ホームに戻る
+				setTimeout(() => {
+					navigate('/');
+				}, 3000); // 完了音声の長さを想定
+			} else {
+				// 音声なしで即座にホームに戻る
+				navigate('/');
+			}
+		}, 1000); // 1秒待機
 	}
 
 	function handleRetire() {
@@ -245,11 +291,23 @@ export default function Train() {
 	}
 
 	// ローディング状態
-	if (audioLoading) {
+	if (audioLoading || trainerLoading) {
 		return (
 			<div className="train">
 				<div className="loading-container">
-					<div>音声を読み込み中...</div>
+					<div>{audioLoading ? '音声を読み込み中...' : 'データを読み込み中...'}</div>
+				</div>
+			</div>
+		);
+	}
+
+	// トレーナーデータのエラー状態
+	if (trainerError) {
+		return (
+			<div className="train">
+				<div className="error-container">
+					<div>データの読み込みに失敗しました: {trainerError}</div>
+					<button onClick={() => window.location.reload()}>再読み込み</button>
 				</div>
 			</div>
 		);
@@ -288,6 +346,25 @@ export default function Train() {
 								pointerEvents: 'none'
 							}}
 						/>
+
+						{currentImage && (
+							<div className="image-overlay">
+								<img
+								src={currentImage}
+								alt="トレーナー画像"
+								style={{
+									position: 'absolute',
+									top: '50%',
+									left: '50%',
+									transform: 'translate(-50%, -50%)',
+									width: '200px',
+									height: '200px',
+									zIndex: 10,
+								}}
+								/>
+								</div>
+							)}
+
 						
 						{!isCameraReady && (
 							<div className="loading-overlay">

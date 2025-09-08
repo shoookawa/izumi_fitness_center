@@ -6,18 +6,18 @@ dotenv.config();
 
 // ダミーデータ
 const DUMMY_DATA = [
-	// トレーナー画像
+	// ホーム画像
 	{
 		trainer_name: 'Izumi',
-		photo_url: 'https://via.placeholder.com/400x400/0ea5e9/ffffff?text=Izumi',
+		photo_url: '/home.jpg',
 		audio_url: '',
-		audio_type: 'start',
+		audio_type: 'home',
 		count_number: null
 	},
 	// 開始音声
 	{
 		trainer_name: 'Izumi',
-		photo_url: 'https://via.placeholder.com/400x400/0ea5e9/ffffff?text=Izumi',
+		photo_url: '/start.jpg',
 		audio_url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav', // ダミー音声URL
 		audio_type: 'start',
 		count_number: null
@@ -41,9 +41,9 @@ const DUMMY_DATA = [
 	// 完了音声
 	{
 		trainer_name: 'Izumi',
-		photo_url: 'https://via.placeholder.com/400x400/0ea5e9/ffffff?text=Izumi',
+		photo_url: '/finish.jpg',
 		audio_url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
-		audio_type: 'complete',
+		audio_type: 'finish',
 		count_number: null
 	},
 	// リタイア音声
@@ -58,9 +58,10 @@ const DUMMY_DATA = [
 
 // カウント音声（1-30）
 for (let i = 1; i <= 30; i++) {
+	const padded = String(i).padStart(2, '0');
 	DUMMY_DATA.push({
 		trainer_name: 'Izumi',
-		photo_url: 'https://via.placeholder.com/400x400/0ea5e9/ffffff?text=Izumi',
+		photo_url: `/count_photo/count_${padded}.jpg`,
 		audio_url: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
 		audio_type: 'count',
 		count_number: i
@@ -74,7 +75,7 @@ async function seed() {
 		user: process.env.DB_USER,
 		password: process.env.DB_PASSWORD,
 		database: process.env.DB_NAME,
-		ssl: { rejectUnauthorized: false }
+		ssl: false
 	});
 
 	try {
