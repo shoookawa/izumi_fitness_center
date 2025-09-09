@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrainerAssets } from '../hooks/useTrainerAssets.js';
+import { useAudioManager } from '../hooks/useAudioManager.js';
 
 export default function Home() {
 	const navigate = useNavigate();
 	const [goal, setGoal] = useState(10);
 	const { trainerData, isLoading, error } = useTrainerAssets();
+	const { playAudio, isLoading: audioLoading } = useAudioManager();
 
 	function handleStart() {
 		navigate('/train', { state: { goal } });

@@ -141,6 +141,12 @@ export default function Train() {
 		}
 	}, [currentCount, goal, hasStarted]);
 
+	useEffect(() => {
+    	if (!hasStarted && trainerData?.countImages?.start) {
+        	setCurrentImage(trainerData.countImages.start);
+    	}
+	}, [trainerData, hasStarted]);
+
 	async function startCamera(retryCount = 0) {
 		const maxRetries = 3;
 		const timeoutMs = 10000; // 10秒タイムアウト
@@ -229,7 +235,7 @@ export default function Train() {
 				// 開始音声終了後、カウントダウン開始
 				setTimeout(() => {
 					startCountdown();
-				}, 2000); // 開始音声の長さを想定
+				}, 3000); // 開始音声の長さを想定
 			} else {
 				// 音声なしでカウントダウン開始
 				startCountdown();
@@ -244,29 +250,11 @@ export default function Train() {
 		setIsDetectionActive(false);
 		releaseWakeLock();
 		
-		// 完了画像を表示
-		if (trainerData?.countImages && trainerData.countImages['finish']) {
-			console.log('🎯 完了画像URL:', trainerData.countImages['finish']);
-			setCurrentImage(trainerData.countImages['finish']);
-		} else {
-			console.log('🎯 完了画像フォールバック: /finish.jpg');
-			setCurrentImage('/finish.jpg');
-		}
-		
-		// 少し待ってからfinish音声を再生
+		// 変更点：navigateを100ミリ秒だけ遅らせる
 		setTimeout(() => {
-			// 音声が利用可能な場合は再生
-			if (audioAssets && !audioLoading) {
-				playAudio('finish');
-				// 完了音声終了後、ホームに戻る
-				setTimeout(() => {
-					navigate('/');
-				}, 3000); // 完了音声の長さを想定
-			} else {
-				// 音声なしで即座にホームに戻る
-				navigate('/');
-			}
-		}, 1000); // 1秒待機
+			// 結果ページに「状態: finish」と「最終カウント」を渡して遷移
+			navigate('/result', { state: { status: 'finish', finalCount: currentCount } });
+		}, 2000); // 100ミリ秒 = 0.1秒
 	}
 
 	function handleRetire() {
@@ -276,18 +264,9 @@ export default function Train() {
 		if (stream) {
 			stream.getTracks().forEach(track => track.stop());
 		}
-		
-		// 音声が利用可能な場合は再生
-		if (audioAssets && !audioLoading) {
-			playAudio('retire');
-			// リタイア音声終了後、ホームに戻る
-			setTimeout(() => {
-				navigate('/');
-			}, 2000); // リタイア音声の長さを想定
-		} else {
-			// 音声なしで即座にホームに戻る
-			navigate('/');
-		}
+	
+		// ✅ 結果ページに状態（status）を渡して遷移
+		navigate('/result', { state: { status: 'retire', finalCount: currentCount } });
 	}
 
 	// ローディング状態
@@ -348,24 +327,13 @@ export default function Train() {
 						/>
 
 						{currentImage && (
-							<div className="image-overlay">
-								<img
+    						<img
 								src={currentImage}
-								alt="トレーナー画像"
-								style={{
-									position: 'absolute',
-									top: '50%',
-									left: '50%',
-									transform: 'translate(-50%, -50%)',
-									width: '200px',
-									height: '200px',
-									zIndex: 10,
-								}}
-								/>
-								</div>
-							)}
+        						alt="トレーナー画像"
+        						className="bottom-right-image" 
+    						/>
+						)}
 
-						
 						{!isCameraReady && (
 							<div className="loading-overlay">
 								<div>カメラを起動中...</div>

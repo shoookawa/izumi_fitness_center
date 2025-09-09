@@ -31,7 +31,9 @@ const pool = new Pool({
 	password: process.env.DB_PASSWORD,
 	database: process.env.DB_NAME,
 	max: Number(process.env.DB_POOL_LIMIT || 10),
-	ssl: false
+	ssl: {
+		rejectUnauthorized: false
+	}
 });
 
 app.get('/trainer-assets', async (req, res) => {
