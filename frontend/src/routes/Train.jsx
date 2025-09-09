@@ -279,19 +279,15 @@ export default function Train() {
 	}
 
 	function handleRetire() {
-		cleanupTraining();
+		setIsDetectionActive(false);
+		releaseWakeLock();
 		
-		// 音声が利用可能な場合は再生
-		if (audioAssets && !audioLoading) {
-			playAudio('retire');
-			// リタイア音声終了後、ホームに戻る
-			setTimeout(() => {
-				navigate('/');
-			}, 2000); // リタイア音声の長さを想定
-		} else {
-			// 音声なしで即座にホームに戻る
-			navigate('/');
+		if (stream) {
+			stream.getTracks().forEach(track => track.stop());
 		}
+	
+		// ✅ 結果ページに状態（status）を渡して遷移
+		navigate('/result', { state: { status: 'retire', finalCount: currentCount } });
 	}
 
 	// ローディング状態
