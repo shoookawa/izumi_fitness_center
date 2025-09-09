@@ -5,7 +5,7 @@ const AUDIO_PRIORITIES = {
 	start: 1,
 	half: 2,
 	last5: 2,
-	complete: 3,
+	finish: 3,
 	retire: 3,
 	count: 0  // カウント音声は最低優先度
 };
@@ -27,7 +27,7 @@ export function useAudioManager() {
 
 	async function loadAudioAssets() {
 		try {
-			const response = await fetch('/api/trainer-assets');
+			const response = await fetch('http://localhost:3000/trainer-assets');
 			if (!response.ok) throw new Error('Failed to fetch audio assets');
 			
 			const assets = await response.json();
@@ -50,7 +50,7 @@ export function useAudioManager() {
 			audio.start,
 			audio.half,
 			audio.last5,
-			audio.complete,
+			audio.finish,
 			audio.retire,
 			...Object.values(audio.count).slice(0, 5) // カウント1-5
 		].filter(Boolean);
@@ -96,6 +96,12 @@ export function useAudioManager() {
 
 		const priority = AUDIO_PRIORITIES[audioType] || 0;
 		const audioItem = { url, priority, audioType, countNumber };
+
+		// カウント音声の場合は直接再生（キューを使わない）
+		if (audioType === 'count') {
+			playCountAudioDirectly(url, countNumber);
+			return;
+		}
 
 		// 現在再生中の音声を停止
 		if (currentAudioRef.current) {
@@ -171,6 +177,23 @@ export function useAudioManager() {
 			isPlayingRef.current = false;
 			currentAudioRef.current = null;
 		}
+	}
+
+	// カウント音声の直接再生
+	function playCountAudioDirectly(url, countNumber) {
+		console.log(`🔊 カウント音声再生: ${countNumber} - ${url}`);
+		
+		// キャッシュから取得または新規作成
+		let audio = audioCacheRef.current.get(url);
+		if (!audio) {
+			audio = new Audio(url);
+			audioCacheRef.current.set(url, audio);
+		}
+
+		// 音声再生
+		audio.play().catch(error => {
+			console.error(`カウント音声再生エラー (${countNumber}):`, error);
+		});
 	}
 
 	// 音声停止
