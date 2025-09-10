@@ -141,12 +141,6 @@ export default function Train() {
 		}
 	}, [currentCount, goal, hasStarted]);
 
-	useEffect(() => {
-    	if (!hasStarted && trainerData?.countImages?.start) {
-        	setCurrentImage(trainerData.countImages.start);
-    	}
-	}, [trainerData, hasStarted]);
-
 	async function startCamera(retryCount = 0) {
 		const maxRetries = 3;
 		const timeoutMs = 10000; // 10秒タイムアウト
@@ -211,40 +205,35 @@ export default function Train() {
 		}
 	}
 
-	async function handleStart() {
-		
-		try {
-			// Wake Lock を要求
-			if (wakeLockSupported) {
-				await requestWakeLock();
-			}
-			
-			// スタート画像を表示
-			if (trainerData?.countImages && trainerData.countImages['start']) {
-				console.log('🎯 スタート画像URL:', trainerData.countImages['start']);
-				setCurrentImage(trainerData.countImages['start']);
-			} else {
-				console.log('🎯 スタート画像フォールバック: /start.jpg');
-				setCurrentImage('/start.jpg');
-			}
-			
-			// 音声が利用可能な場合は再生
-			if (audioAssets && !audioLoading) {
-				playAudio('start');
-				
-				// 開始音声終了後、カウントダウン開始
-				setTimeout(() => {
-					startCountdown();
-				}, 3000); // 開始音声の長さを想定
-			} else {
-				// 音声なしでカウントダウン開始
-				startCountdown();
-			}
-		} catch (error) {
-			// エラーが発生してもカウントダウンは開始
-			startCountdown();
-		}
-	}
+// frontend/src/routes/Train.jsx
+
+async function handleStart() {
+    try {
+        // Wake Lock を要求
+        if (wakeLockSupported) {
+            await requestWakeLock();
+        }
+        
+        // ✅ スタート画像を表示し、同時にスタート音声を再生
+        if (trainerData?.countImages?.['start']) {
+            setCurrentImage(trainerData.countImages['start']);
+            playAudio('start');
+        }
+        
+        // 開始音声(約3秒)が終わるのを待ってから、カウントダウン開始
+        setTimeout(() => {
+            startCountdown();
+            // ✅ カウントダウンが始まったら画像を非表示にする
+            setCurrentImage(null); 
+        }, 2700);
+
+    } catch (error) {
+        console.error("Start handler failed:", error);
+        // エラーが発生してもカウントダウンは試みる
+        startCountdown();
+        setCurrentImage(null);
+    }
+}
 
 	// トレーニング終了時の共通クリーンアップ処理
 	function cleanupTraining() {
