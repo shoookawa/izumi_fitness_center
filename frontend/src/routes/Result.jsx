@@ -16,10 +16,9 @@ export default function Result() {
     
     const [currentImage, setCurrentImage] = useState(null);
     const [message, setMessage] = useState('');
-    // ✅ ユーザーが画面をタップしたかを管理する状態
-    const [interacted, setInteracted] = useState(false);
+    const [audioPlayed, setAudioPlayed] = useState(false);
 
-    // 画像とメッセージだけは、データが読み込まれたらすぐに設定する
+    // 画像とメッセージを設定
     useEffect(() => {
         if (!trainerLoading && trainerData) {
             let imageKey = '';
@@ -36,89 +35,35 @@ export default function Result() {
         }
     }, [trainerLoading, trainerData, status, finalCount]);
 
-    // ✅ 画面をタップした時の処理
-    const handleInteraction = () => {
-        if (interacted || audioLoading) return; // 既にタップ済みか、音声ロード中なら何もしない
+    // 音声を再生（一度だけ）
+    useEffect(() => {
+        if (!trainerLoading && trainerData && !audioPlayed && !audioLoading) {
+            const soundToPlay = status === 'finish' ? 'finish' : 'retire';
+            playAudio(soundToPlay);
+            setAudioPlayed(true);
+        }
+    }, [trainerLoading, trainerData, audioPlayed, audioLoading, status, playAudio]);
 
-        setInteracted(true); // タップ済みにする
-
-        // 音声を再生する
-        const soundToPlay = status === 'finish' ? 'finish' : 'retire';
-        playAudio(soundToPlay);
-
-        // 5秒後にホームページへ自動で遷移するタイマー
-        const timer = setTimeout(() => {
-            navigate('/');
-        }, 5000);
-
-        // クリーンアップ
-        return () => clearTimeout(timer);
+    const handleHomeClick = () => {
+        navigate('/');
     };
 
     if (trainerLoading) {
-        return <div style={styles.container}>結果を読み込み中...</div>;
+        return <div className="result-loading">結果を読み込み中...</div>;
     }
 
     return (
-        // 画面全体をクリック（タップ）可能にする
-        <div style={styles.container} onClick={handleInteraction}>
-
-            {/* ✅ タップを促すメッセージ（まだタップされていない場合のみ表示） */}
-            {!interacted && (
-                <div style={styles.tapOverlay}>
-                    <p>画面をタップして結果を見る</p>
-                </div>
-            )}
-
-            {currentImage && <img src={currentImage} alt={status} style={styles.image} />}
-            <h1 style={styles.title}>{status === 'finish' ? 'トレーニング終了！' : 'リタイア'}</h1>
-            <h2 style={styles.message}>{message}</h2>
+        <div className="result">
+            <div className="trainer-photo">
+                {currentImage && <img src={currentImage} alt={status} />}
+            </div>
+            <div className={`result-title ${status}`}>
+                {status === 'finish' ? 'トレーニング終了！' : 'リタイア'}
+            </div>
+            <div className="result-message">{message}</div>
+            <button className="home-button" onClick={handleHomeClick}>
+                ホームに戻る
+            </button>
         </div>
     );
 }
-
-// スタイル（タップを促すメッセージ用のスタイルを追加）
-const styles = {
-    container: {
-        display: 'flex',            // ✅ Flexboxを有効にする
-        flexDirection: 'column',    // ✅ 子要素を縦に並べる
-        // justifyContent: 'center',   // ✅ 縦方向の中央揃え
-        alignItems: 'center',       // ✅ 横方向の中央揃え
-        width: '100%',
-        height: '100vh',            // 画面全体の高さを使う
-        backgroundColor: '#111827',
-        color: 'white',
-        textAlign: 'center',
-        padding: '20px'
-    },
-    image: {
-        width: '200px',
-        marginBottom: '24px',
-        border: '5px solid #0ea5e9'
-    },
-    title: {
-        fontSize: '32px',
-        margin: '0 0 12px 0'
-    },
-    message: {
-        fontSize: '20px',
-        color: '#d1d5db',
-        margin: 0
-    },
-    // ✅ 追加
-    tapOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        color: 'white',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        fontSize: '24px',
-        cursor: 'pointer',
-        zIndex: 10
-    }
-};

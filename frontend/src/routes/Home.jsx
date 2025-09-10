@@ -44,13 +44,31 @@ export default function Home() {
 			<div className="trainer-photo">
 				<img src={trainerPhoto} alt="トレーナー泉" />
 			</div>
-			<label className="goal-label" htmlFor="goal">目標回数</label>
-			<select id="goal" value={goal} onChange={(e) => setGoal(Number(e.target.value))}>
-				<option value={10}>10回</option>
-				<option value={20}>20回</option>
-				<option value={30}>30回</option>
-			</select>
-			<button className="start-button" onClick={handleStart}>開始</button>
+			<div className="exercise-title">腹筋</div>
+			<div className="goal-selection">
+				<div className="goal-label">目標回数</div>
+				<div className="goal-cards">
+					<button 
+						className={`goal-card ${goal === 10 ? 'selected' : ''}`}
+						onClick={() => setGoal(10)}
+					>
+						10回
+					</button>
+					<button 
+						className={`goal-card ${goal === 20 ? 'selected' : ''}`}
+						onClick={() => setGoal(20)}
+					>
+						20回
+					</button>
+					<button 
+						className={`goal-card ${goal === 30 ? 'selected' : ''}`}
+						onClick={() => setGoal(30)}
+					>
+						30回
+					</button>
+				</div>
+			</div>
+			<button className="training-button" onClick={handleStart}>トレーニングへ</button>
 		</div>
 	);
 } 

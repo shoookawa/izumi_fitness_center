@@ -6,7 +6,9 @@ export default function App() {
 	return (
 		<div className="app-root">
 			<header className="app-header">
-				<h1>イズミフィットネスセンター</h1>
+				<div className="header-content">
+					<h1>イズミフィットネスセンター</h1>
+				</div>
 			</header>
 			<main>
 				<Outlet />

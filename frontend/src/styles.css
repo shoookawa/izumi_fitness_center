@@ -18,16 +18,38 @@ html, body, #root {
 .app-header {
 	position: sticky;
 	top: 0;
-	padding: 12px 16px;
-	background: var(--primary);
+	padding: 8px 16px;
+	background: linear-gradient(135deg, var(--primary) 0%, #0284c7 100%);
 	color: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	z-index: 100;
+}
+
+.header-content {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: center;
+	width: 100%;
+	padding: 0 20px;
+	box-sizing: border-box;
+}
+
+.app-header h1 {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 600;
+	text-align: center;
 }
 
 .home {
-	padding: 16px;
+	padding: 16px 24px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	height: calc(100vh - 60px); /* ヘッダーの高さを引く */
+	justify-content: center;
+	overflow: hidden;
 }
 
 .train {
@@ -49,17 +71,121 @@ html, body, #root {
 }
 
 .trainer-photo img {
-	width: 160px;
-	height: 160px;
+	width: 200px;
+	height: 280px;
 	object-fit: cover;
 	border-radius: 12px;
 	display: block;
-	margin: 0 auto 16px;
+	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.goal-label { display: block; margin-bottom: 8px; }
-select { font-size: 16px; padding: 8px; }
-.start-button, .retire-button { margin-top: 16px; padding: 10px 16px; font-size: 16px; }
+/* 運動タイトル */
+.exercise-title {
+	font-size: 24px;
+	font-weight: bold;
+	color: var(--primary);
+	text-align: center;
+	margin: 0;
+}
+
+/* 目標回数選択 */
+.goal-selection {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+}
+
+.goal-label {
+	font-size: 16px;
+	font-weight: 600;
+	color: #374151;
+	margin: 0;
+}
+
+.goal-cards {
+	display: flex;
+	gap: 8px;
+}
+
+.goal-card {
+	background: white;
+	border: 2px solid #e5e7eb;
+	border-radius: 10px;
+	padding: 12px 20px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #374151;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	min-width: 70px;
+	text-align: center;
+}
+
+.goal-card:hover {
+	border-color: var(--primary);
+	background: #f8fafc;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+}
+
+.goal-card.selected {
+	background: var(--primary);
+	color: white;
+	border-color: var(--primary);
+	box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+/* トレーニングボタン */
+.training-button {
+	background: #10b981;
+	color: white;
+	border: none;
+	padding: 14px 28px;
+	font-size: 16px;
+	font-weight: bold;
+	border-radius: 12px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.training-button:hover {
+	background: #059669;
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.training-button:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.start-button { margin-top: 16px; padding: 10px 16px; font-size: 16px; }
+
+.retire-button {
+	background: #ef4444;
+	color: white;
+	border: none;
+	padding: 12px 20px;
+	font-size: 16px;
+	font-weight: bold;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.retire-button:hover {
+	background: #dc2626;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.retire-button:active {
+	transform: translateY(0);
+	box-shadow: 0 1px 4px rgba(239, 68, 68, 0.3);
+}
 
 .video-container { 
     position: relative; 
@@ -311,3 +437,83 @@ select { font-size: 16px; padding: 8px; }
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); /* 影を付けて立体感を出す */
 	z-index: 15;        /* 他の要素より手前に表示 */
   }
+
+/* Result画面のスタイル */
+.result {
+	padding: 16px 24px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	height: calc(100vh - 60px); /* ヘッダーの高さを引く */
+	justify-content: center;
+	overflow: hidden;
+	background: #111827;
+	color: white;
+}
+
+.result-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: calc(100vh - 60px);
+	background: #111827;
+	color: white;
+	font-size: 18px;
+}
+
+.result .trainer-photo img {
+	width: 200px;
+	height: 280px;
+	object-fit: cover;
+	border-radius: 12px;
+	display: block;
+	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.result-title {
+	font-size: 24px;
+	font-weight: bold;
+	text-align: center;
+	margin: 0;
+}
+
+.result-title.finish {
+	color: #fbbf24; /* 金色 */
+	text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.result-title.retire {
+	color: #6b7280; /* グレー */
+}
+
+.result-message {
+	font-size: 16px;
+	color: #d1d5db;
+	text-align: center;
+	margin: 0;
+}
+
+.home-button {
+	background: var(--primary);
+	color: white;
+	border: none;
+	padding: 14px 28px;
+	font-size: 16px;
+	font-weight: bold;
+	border-radius: 12px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.home-button:hover {
+	background: #0284c7;
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+}
+
+.home-button:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+}
