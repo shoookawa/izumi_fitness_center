@@ -9,6 +9,7 @@ html, body, #root {
 	height: 100%;
 	margin: 0;
 	padding: 0;
+	overflow: hidden; /* ✅ この一行を追加 */
 	background: #ffffff;
 	color: #111827;
 	font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", sans-serif;
@@ -25,8 +26,26 @@ html, body, #root {
 	justify-content: space-between;
 }
 
-.home, .train {
+.home {
 	padding: 16px;
+}
+
+.train {
+    display: flex;
+    flex-direction: column; /* 要素を縦に並べる */
+    
+    /* 縦方向の配置：上に寄せる */
+    justify-content: flex-start; /* ← これで上の余白が詰まります */
+    padding-top: 20px;            /* ← ここで上の余白を微調整します (お好みで変更OK) */
+
+    /* 横方向の配置：中央に揃える */
+    align-items: center; /* ← これが横方向の中央揃えを保証します */
+
+    /* 全画面表示のための設定 */
+    height: 100vh;
+    width: 100vw;
+    box-sizing: border-box; /* paddingを含めて高さを100vhにする */
+    gap: 20px; /* カメラとHUDの間の隙間 */
 }
 
 .trainer-photo img {
@@ -43,13 +62,13 @@ select { font-size: 16px; padding: 8px; }
 .start-button, .retire-button { margin-top: 16px; padding: 10px 16px; font-size: 16px; }
 
 .video-container { 
-	position: relative; 
-	width: 100%; 
-	max-width: 420px; 
-	margin: 0 auto;
-	background: #000;
-	border-radius: 12px;
-	overflow: hidden;
+    position: relative; 
+    width: 70vw;  
+    height: 70vh; 
+    background: #000;
+    border-radius: 12px; 
+    overflow: hidden; 
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4); 
 }
 
 .camera-video {
@@ -170,11 +189,12 @@ select { font-size: 16px; padding: 8px; }
 }
 
 .hud { 
-	display: flex; 
-	align-items: center; 
-	justify-content: space-between; 
-	max-width: 420px; 
-	margin: 12px auto 0; 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    width: 70vw; /* カメラの幅と合わせる */
+    padding: 0 10px;
+    box-sizing: border-box;
 }
 
 .count { 
@@ -282,11 +302,11 @@ select { font-size: 16px; padding: 8px; }
 	position: absolute; /* 親要素(video-container)を基準に配置 */
 	bottom: 10px;       /* 下から10pxの位置 */
 	right: 10px;        /* 右から10pxの位置 */
-	width: 100px;        /* 画像の幅 */
-	height: 100px;       /* 画像の高さ */
+	width: 250px;        /* 画像の幅 */
+	height: 350px;       /* 画像の高さ */
 	object-fit: cover;  /* 画像をコンテナに合わせて切り抜き */
 	object-position: top;
-	border-radius: 20%; /* 画像を丸くする */
+	border-radius: 15%; /* 画像を丸くする */
 	border: 1px solid white; /* 白い枠線を追加 */
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); /* 影を付けて立体感を出す */
 	z-index: 15;        /* 他の要素より手前に表示 */
